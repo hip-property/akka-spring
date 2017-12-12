@@ -52,8 +52,9 @@ internal class PrototypeActorRefProviderImpl<T : AnnotatedActor>(
    val actorFactory: ActorRefFactory,
    val type: Class<T>
 ) : PrototypeActor<T> {
-   private val actorRef by lazy { actorFactory.newActorRef(type) }
-   override fun ref()= actorRef
+   override fun ref(): ActorRef {
+      return actorFactory.newActorRef(type)
+   }
 }
 
 internal class SingletonActorRefProviderImpl<T : AnnotatedActor>(
