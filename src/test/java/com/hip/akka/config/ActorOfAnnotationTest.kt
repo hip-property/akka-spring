@@ -43,7 +43,7 @@ class ActorOfAnnotationTest {
    fun given_dependencyIsCachedActorOf_then_theCorrectActorIsInjected() {
       cache1.invoke()
       cache2.invoke()
-      await().atMost(1, TimeUnit.SECONDS).until { dependency.invocations.isNotEmpty() }
+      await().atMost(2, TimeUnit.SECONDS).until { dependency.invocations.isNotEmpty() }
       expect(dependency.invocations.keys).to.have.size(1)
       expect(dependency.invocations.values.first()).to.equal(2)
    }
@@ -52,7 +52,7 @@ class ActorOfAnnotationTest {
    fun given_dependencyIsProtoActorOf_then_theCorrectActorIsInjected() {
       proto1.invoke()
       proto2.invoke()
-      await().atMost(1, TimeUnit.SECONDS).until { dependency.invocations.size == 2 }
+      await().atMost(2, TimeUnit.SECONDS).until { dependency.invocations.size == 2 }
       dependency.invocations.values.forEach { expect(it).to.equal(1) }
    }
 }
