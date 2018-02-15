@@ -5,7 +5,7 @@ import akka.japi.pf.ReceiveBuilder
 import org.springframework.context.annotation.Scope
 
 @Target(AnnotationTarget.FUNCTION)
-annotation class MessageHandler
+annotation class AkkaMessageHandler
 
 interface ActorResponse<T> {
    val response: T
@@ -30,7 +30,7 @@ abstract class AnnotatedActor : AbstractActor() {
    private fun buildReceive(type: Class<out AnnotatedActor>): Receive {
       val receive = ReceiveBuilder()
       type.declaredMethods
-         .filter { it.isAnnotationPresent(MessageHandler::class.java) }
+         .filter { it.isAnnotationPresent(AkkaMessageHandler::class.java) }
          .forEach { method ->
             if (method.parameterCount != 1) throw IllegalArgumentException("Method ${method.name} on ${type.name} must take exactly 1 argument.")
             val paramType = method.parameterTypes[0]

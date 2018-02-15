@@ -54,12 +54,12 @@ class Observer {
 @ActorBean
 class GreetingActor(val observer: Observer) : AnnotatedActor() {
 
-   @MessageHandler
+   @AkkaMessageHandler
    fun greet(greeting: Greeting) {
       observer.invoked = true
    }
 
-   @MessageHandler
+   @AkkaMessageHandler
    fun ask(question: Question):ActorResponse<GreetingResponse> {
       return reply(GreetingResponse("Hello, ${question.message}"))
    }

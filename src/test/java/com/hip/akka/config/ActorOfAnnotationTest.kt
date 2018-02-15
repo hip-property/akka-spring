@@ -94,7 +94,7 @@ class Dependency {
 @ActorBean
 class MyActor(val dependency: Dependency) : AnnotatedActor() {
    val id: String = Ids.newId()
-   @MessageHandler
+   @AkkaMessageHandler
    fun handle(message: String) {
       dependency.invoke(id)
    }

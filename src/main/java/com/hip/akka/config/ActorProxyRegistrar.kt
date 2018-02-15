@@ -54,7 +54,7 @@ class ActorProxyRegistrar : BeanFactoryPostProcessor, ApplicationContextAware {
 
    private fun buildProxyDefs(actorClass: Class<out AnnotatedActor>): Map<BeanName, ProxyInstance> {
       return actorClass.declaredMethods
-         .filter { it.isAnnotationPresent(MessageHandler::class.java) }
+         .filter { it.isAnnotationPresent(AkkaMessageHandler::class.java) }
          .map { buildProxyDef(it, actorClass) }
          .toMap()
    }
