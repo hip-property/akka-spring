@@ -8,6 +8,7 @@ import com.google.common.cache.CacheLoader
 import com.google.common.cache.LoadingCache
 import com.hip.akka.SpringExtension.Companion.SpringExtProvider
 import com.hip.akka.config.ActorProxyRegistrar
+import com.hip.utils.Ids
 import com.hip.utils.log
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.config.DependencyDescriptor
@@ -35,7 +36,7 @@ interface ActorRefProvider<T> {
    fun tell(message: Any) = ref().tell(message, ActorRef.noSender())
    fun tell(message: Any, sender: ActorRef) = ref().tell(message, sender)
 
-   fun <T> ask(message: Any, timeout: Timeout = Timeout.apply(5, TimeUnit.SECONDS)): CompletableFuture<T> {
+   fun <T> ask(message: Any, timeout: Timeout = Timeout.apply(10, TimeUnit.SECONDS)): CompletableFuture<T> {
       return PatternsCS.ask(ref(), message, timeout).toCompletableFuture() as CompletableFuture<T>
    }
 }
@@ -79,7 +80,9 @@ class ActorRefFactory(val actorSystem: ActorSystem) {
 
    fun newActorRef(type: Class<out AnnotatedActor>): ActorRef {
       return actorSystem.actorOf(
-         SpringExtProvider.get(actorSystem).props(type))
+         SpringExtProvider.get(actorSystem).props(type),
+         Ids.shortId("actor.${type.simpleName}")
+      )
    }
 
    fun cachingActorRef(type: Class<out AnnotatedActor>): ActorRef {
@@ -141,7 +144,13 @@ class SpringActorProducer(internal val applicationContext: ApplicationContext,
                           internal val actorType: Class<out Actor>) : IndirectActorProducer {
 
    override fun produce(): Actor {
-      return applicationContext.getBean(actorType) as Actor
+      try {
+         return applicationContext.getBean(actorType) as Actor
+      } catch (ex:Exception) {
+         log().error("Shit", ex)
+         throw ex
+      }
+
    }
 
    override fun actorClass(): Class<out Actor> {
@@ -165,7 +174,7 @@ class AkkaSpringConfig {
     */
    @Bean
    fun actorSystem(): ActorSystem {
-      log().info("*****************AkkaSpringConfig ActorSystem wried")
+      log().info("AkkaSpringConfig ActorSystem wired")
       val actorSystem = ActorSystem.create("AkkaJavaSpring")
       // initialize the application context in the Akka Spring Extension
       SpringExtProvider.get(actorSystem).initialize(applicationContext)

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
+import reactor.core.publisher.Mono
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
@@ -79,7 +80,7 @@ class ActorProxyRegistrar : BeanFactoryPostProcessor, ApplicationContextAware {
          val returnType = getReturnTypeParam(actorClass, method, method.genericReturnType) as Class<Any>
          val interfaceType = try {
             createParameterizedInterface(ActorFunction::class.java, parameterType, returnType)
-         } catch (exception:Exception) {
+         } catch (exception: Exception) {
             log().error("Exception when trying to create ActorFunction for method ${method.name} declared on ${actorClass.name}: ", exception)
             throw exception
          }
@@ -95,10 +96,13 @@ class ActorProxyRegistrar : BeanFactoryPostProcessor, ApplicationContextAware {
       if (returnType !is ParameterizedType) {
          throw IllegalArgumentException("Method ${method.name} on ${actorClass.name} is not defined correctly.  Must return an ActorResponse<T> - call reply(T) instead of returning a value")
       }
-      if (returnType.rawType != ActorResponse::class.java) {
-         throw IllegalArgumentException("Method ${method.name} on ${actorClass.name} is not defined correctly.  Must return an ActorResponse<T> - call reply(T) instead of returning a value")
+
+      return when {
+         returnType.rawType == ActorResponse::class.java -> returnType.actualTypeArguments[0]
+         returnType.rawType == Mono::class.java -> returnType.actualTypeArguments[0]
+         else -> throw IllegalArgumentException("Method ${method.name} on ${actorClass.name} is not defined correctly.  Must return an ActorResponse<T> - call reply(T) instead of returning a value")
       }
-      return returnType.actualTypeArguments[0]
+
    }
 
    private fun getActionTypeClass(parameterType: Class<Any>): Class<Any> {
