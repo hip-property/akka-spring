@@ -37,6 +37,9 @@ interface ActorRefProvider<T> {
    fun tell(message: Any, sender: ActorRef) = ref().tell(message, sender)
 
    fun <T> ask(message: Any, timeout: Timeout = Timeout.apply(10, TimeUnit.SECONDS)): CompletableFuture<T> {
+      // WARNING: If the response message isn't the expected type,
+      // this will timeout.
+      // https://gitlab.com/hipproperty/platform/issues/27
       return PatternsCS.ask(ref(), message, timeout).toCompletableFuture() as CompletableFuture<T>
    }
 }
@@ -147,7 +150,7 @@ class SpringActorProducer(internal val applicationContext: ApplicationContext,
       try {
          return applicationContext.getBean(actorType) as Actor
       } catch (ex:Exception) {
-         log().error("Shit", ex)
+         log().error("Failed to create actor ${actorType.name}", ex)
          throw ex
       }
 

@@ -3,6 +3,7 @@ package com.hip.akka
 import akka.actor.AbstractActor
 import akka.japi.pf.ReceiveBuilder
 import akka.persistence.AbstractPersistentActor
+import akka.persistence.RecoveryCompleted
 import com.hip.utils.log
 import org.springframework.context.annotation.Scope
 import reactor.core.publisher.Mono
@@ -31,7 +32,7 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
             method.isAccessible = true
             receive.match(paramType, { param -> method.invoke(target, param) })
          }
-      receive.matchAny { message -> log().warn("Received unmatched message of type ${message::class.java.name} which will be ignored") }
+      receive.matchAny { message -> log().warn("${target::class.java.name} received unmatched message of type ${message::class.java.name} which will be ignored") }
       return receive.build()
    }
 }
@@ -44,13 +45,6 @@ abstract class AnnotatedActor : AbstractActor() {
       return DefaultActorResponse(response)
    }
 
-   //   override fun preRestart(reason: Throwable?, message: Option<Any>?) {
-//      super.preRestart(reason, message)
-//   }
-//   override fun postStop() {
-//      log().error("Actor ${this.javaClass.simpleName} - $this.nam stopping")
-//      super.postStop()
-//   }
    override fun createReceive(): Receive {
       return AnnotatedReceiveBuilder(this).build()
    }
@@ -58,6 +52,28 @@ abstract class AnnotatedActor : AbstractActor() {
 
 abstract class AnnotatedPersistentActor(private val persistenceId: String) : AbstractPersistentActor() {
    override fun persistenceId(): String = persistenceId
+
+   @AkkaMessageHandler
+   protected fun handleRecoveryComplete(message: RecoveryCompleted) {
+      log().info("Recovery complete")
+   }
+
+   protected fun <T> stashWhile(func: () -> T): T {
+      context.become(ReceiveBuilder.create()
+         .matchAny({ stash() })
+         .build()
+      )
+
+      val response = try {
+         func()
+      } catch (exception: Exception) {
+         log().error("Exception whilst wrapping stashed behaviour.  Will rethrow, and unstash to continue", exception)
+         context.unbecome()
+         throw exception
+      }
+      context.unbecome()
+      return response
+   }
 
    protected var isReplaying = false
    fun <T> reply(response: T): ActorResponse<T> {
@@ -68,6 +84,7 @@ abstract class AnnotatedPersistentActor(private val persistenceId: String) : Abs
    override fun preStart() {
       this.isReplaying = true
    }
+
    override fun onReplaySuccess() {
       super.onReplaySuccess()
       this.isReplaying = false
@@ -88,12 +105,8 @@ abstract class AnnotatedPersistentActor(private val persistenceId: String) : Abs
    }
 
    override fun preRestart(reason: Throwable?, message: Option<Any>?) {
+      log().warn("Restarting from error: $reason, message - ${message}")
       super.preRestart(reason, message)
-   }
-
-   override fun postStop() {
-      log().error("Actor ${this.javaClass.simpleName} - $this.nam stopping")
-      super.postStop()
    }
 
    override fun createReceive(): Receive {
