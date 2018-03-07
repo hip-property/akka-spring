@@ -104,8 +104,9 @@ abstract class AnnotatedPersistentActor(private val persistenceId: String) : Abs
 
    }
 
-   override fun preRestart(reason: Throwable?, message: Option<Any>?) {
-      log().warn("Restarting from error: $reason, message - ${message}")
+   override fun preRestart(reason: Throwable, message: Option<Any>) {
+      reason.printStackTrace()
+      log().warn("Restarting from error: ${reason.message}, message - ${message}")
       super.preRestart(reason, message)
    }
 
