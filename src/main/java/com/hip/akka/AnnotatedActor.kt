@@ -30,7 +30,14 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
             if (method.parameterCount != 1) throw IllegalArgumentException("Method ${method.name} on ${type.name} must take exactly 1 argument.")
             val paramType = method.parameterTypes[0]
             method.isAccessible = true
-            receive.match(paramType, { param -> method.invoke(target, param) })
+            receive.match(paramType, { param ->
+               try {
+                  method.invoke(target, param)
+               } catch (exception: Exception) {
+                  log().error("Failed to invoke method ${method.name} with param of type ${param::class.java.name} - threw ${exception::class.java.name}")
+                  throw exception
+               }
+            })
          }
       receive.matchAny { message -> log().warn("${target::class.java.name} received unmatched message of type ${message::class.java.name} which will be ignored") }
       return receive.build()
