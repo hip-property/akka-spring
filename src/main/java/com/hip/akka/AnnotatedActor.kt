@@ -12,7 +12,7 @@ import scala.Option
 import java.util.concurrent.CompletableFuture
 
 @Target(AnnotationTarget.FUNCTION)
-annotation class AkkaMessageHandler
+annotation class AkkaMessageHandler(val subscribeFromEventStream: Boolean = false)
 
 interface ActorResponse<out T> {
    val response: T
@@ -27,6 +27,7 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
       type.declaredMethods
          .filter { it.isAnnotationPresent(AkkaMessageHandler::class.java) }
          .forEach { method ->
+            val annotation = method.getAnnotation(AkkaMessageHandler::class.java)
             if (method.parameterCount != 1) throw IllegalArgumentException("Method ${method.name} on ${type.name} must take exactly 1 argument.")
             val paramType = method.parameterTypes[0]
             method.isAccessible = true
@@ -38,6 +39,10 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
                   throw exception
                }
             })
+
+            if (annotation.subscribeFromEventStream) {
+               target.context.system.eventStream().subscribe(target.self(), paramType)
+            }
          }
       receive.matchAny { message -> log().warn("${target::class.java.name} received unmatched message of type ${message::class.java.name} which will be ignored") }
       return receive.build()
