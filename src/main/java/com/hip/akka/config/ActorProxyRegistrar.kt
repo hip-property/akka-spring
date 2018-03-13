@@ -4,6 +4,7 @@ import com.google.common.reflect.Reflection
 import com.hip.akka.*
 import com.hip.utils.log
 import javassist.ClassPool
+import javassist.LoaderClassPath
 import javassist.bytecode.SignatureAttribute
 import org.reflections.Reflections
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
@@ -106,7 +107,7 @@ class ActorProxyRegistrar : BeanFactoryPostProcessor, ApplicationContextAware {
    }
 
    private fun getActionTypeClass(parameterType: Class<Any>): Class<Any> {
-      val defaultClassPool = ClassPool.getDefault()
+      val defaultClassPool = getClassPool()
       val superInterface = defaultClassPool.getCtClass(ActorAction::class.java.name)
       val actorActionInterface = defaultClassPool.makeInterface("${parameterType.name}ActorAction", superInterface)
 
@@ -124,7 +125,7 @@ class ActorProxyRegistrar : BeanFactoryPostProcessor, ApplicationContextAware {
       val interfaceSpec = InterfaceSpec(superType, typeParams.toList())
       return createdInterfaces.getOrPut(interfaceSpec, {
          log().info("Creating interface ${superType.name}<${typeParams.joinToString { it.name }}>")
-         val defaultClassPool = ClassPool.getDefault()
+         val defaultClassPool = getClassPool()
          val superInterface = defaultClassPool.getCtClass(superType.name)
          val interfaceName = typeParams.joinToString(separator = "To") { it.simpleName } + superType.simpleName
          val parameterizedInterface = defaultClassPool.makeInterface(interfaceName, superInterface)
@@ -139,6 +140,13 @@ class ActorProxyRegistrar : BeanFactoryPostProcessor, ApplicationContextAware {
          classFile.addAttribute(signatureAttribute)
          parameterizedInterface.toClass()
       })
+   }
+
+   private fun getClassPool(): ClassPool {
+      val defaultClassPool = ClassPool.getDefault()
+      //  add this class class loader to ensure classes loaded by spring are found
+      defaultClassPool.appendClassPath(LoaderClassPath(this.javaClass.classLoader))
+      return defaultClassPool
    }
 
    fun Class<out Any>.signatureName(): String {
