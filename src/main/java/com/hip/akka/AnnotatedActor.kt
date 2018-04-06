@@ -104,16 +104,15 @@ abstract class AnnotatedPersistentActor(private val persistenceId: String) : Abs
 
    protected fun <T, U> persistEvent(event: T, callback: (T) -> U): Mono<U> {
       val future = CompletableFuture<U>()
-      if (isReplaying) {
-         return Mono.just(callback(event))
+      return if (isReplaying) {
+         Mono.just(callback(event))
       } else {
          super.persist(event, { persisted ->
             val result = callback.invoke(persisted)
             future.complete(result)
          })
-         return future.toMono()
+         future.toMono()
       }
-
    }
 
    override fun preRestart(reason: Throwable, message: Option<Any>) {
