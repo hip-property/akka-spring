@@ -23,6 +23,8 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
    fun build(): AbstractActor.Receive = buildReceive(target::class.java)
 
    private fun buildReceive(type: Class<out AbstractActor>): AbstractActor.Receive {
+      log().debug("Building receive for $type")
+
       val receive = ReceiveBuilder()
       type.declaredMethods
          .filter { it.isAnnotationPresent(AkkaMessageHandler::class.java) }
@@ -31,8 +33,10 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
             if (method.parameterCount != 1) throw IllegalArgumentException("Method ${method.name} on ${type.name} must take exactly 1 argument.")
             val paramType = method.parameterTypes[0]
             method.isAccessible = true
+            log().debug("Building receive for $type param $paramType method ${method.name}")
             receive.match(paramType, { param ->
                try {
+                  log().debug("Building receive invoking $type param $paramType method ${method.name}")
                   method.invoke(target, param)
                } catch (exception: Exception) {
                   log().error("Failed to invoke method ${method.name} with param of type ${param::class.java.name} - threw ${exception::class.java.name}")
