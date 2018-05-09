@@ -46,6 +46,7 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
 
             if (annotation.subscribeFromEventStream) {
                target.context.system.eventStream().subscribe(target.self(), paramType)
+               log().debug("Subscribing $type to the eventStream for messages of type $paramType")
             }
          }
       receive.matchAny { message -> log().warn("${target::class.java.name} received unmatched message of type ${message::class.java.name} which will be ignored") }
