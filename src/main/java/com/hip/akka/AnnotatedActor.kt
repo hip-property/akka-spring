@@ -26,7 +26,7 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
       log().debug("Building receive for $type")
 
       val receive = ReceiveBuilder()
-      type.declaredMethods
+      (type.declaredMethods + type.methods).toSet()
          .filter { it.isAnnotationPresent(AkkaMessageHandler::class.java) }
          .forEach { method ->
             val annotation = method.getAnnotation(AkkaMessageHandler::class.java)
@@ -49,7 +49,8 @@ internal class AnnotatedReceiveBuilder(val target: AbstractActor) {
                log().debug("Subscribing $type to the eventStream for messages of type $paramType")
             }
          }
-      receive.matchAny { message -> log().warn("${target::class.java.name} received unmatched message of type ${message::class.java.name} which will be ignored") }
+      receive.matchAny { message ->
+         log().warn("${target::class.java.name} received unmatched message of type ${message::class.java.name} which will be ignored") }
       return receive.build()
    }
 }

@@ -10,6 +10,7 @@ import com.hip.akka.SpringExtension.Companion.SpringExtProvider
 import com.hip.akka.config.ActorProxyRegistrar
 import com.hip.utils.Ids
 import com.hip.utils.log
+import com.typesafe.config.ConfigFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.config.DependencyDescriptor
 import org.springframework.context.ApplicationContext

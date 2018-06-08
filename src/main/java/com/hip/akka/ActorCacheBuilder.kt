@@ -21,7 +21,7 @@ class ActorCacheBuilder<K>(val maxSize: Int, val creator: (K) -> ActorRef) {
          .maximumSize(maxSize.toLong())
          .removalListener<K, ActorRef> { notification: RemovalNotification<K, ActorRef> ->
             log().info("Cached actor for key ${notification.key} has been evicted, and will be shut down")
-            notification.value.tell(PoisonPill.getInstance(), self())
+            notification.value.tell(PoisonPill.getInstance(), ActorRef.noSender())
          }
          .build(object : CacheLoader<K, ActorRef>() {
             override fun load(key: K): ActorRef {
